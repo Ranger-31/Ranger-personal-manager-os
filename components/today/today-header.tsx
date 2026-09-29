@@ -62,7 +62,7 @@ function DemoMenu() {
           {confirming ? (
             <div className="space-y-3">
               <p className="text-[13.5px] leading-relaxed text-foreground">
-                これまでの記録・Streak・追加したRoutineがすべて消え、初期状態に戻ります。元に戻せません。
+                これまでのRoutineの記録・Streak・追加したRoutineがすべて消え、初期状態に戻ります。元に戻せません。Tasks（単発タスク）は消えません。
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="secondary" onClick={() => setConfirming(false)}>

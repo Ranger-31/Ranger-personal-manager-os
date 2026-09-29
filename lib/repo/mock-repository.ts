@@ -13,6 +13,7 @@ import {
 } from "@/lib/mock/data";
 import { isScheduledOn } from "@/lib/calc/routine";
 import { addDays, toDateKey } from "@/lib/utils";
+import { taskStore } from "@/lib/repo/task-store";
 
 /**
  * Mock Repository（localStorage 永続化）
@@ -204,6 +205,13 @@ export const mockRepository: Repository = {
     return created;
   },
 
+  // Tasks は別キーに保存（Routine・記録・Streak のデータには触れない）
+  listTasks: () => taskStore.list(),
+  createTask: (input) => taskStore.create(input),
+  updateTask: (id, patch) => taskStore.update(id, patch),
+  deleteTask: (id) => taskStore.remove(id),
+
+  /** Routine側のデータのみ初期化。Tasks（pmos:tasks:v1）は消さない */
   async resetDemo() {
     if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY);
     memory = null;

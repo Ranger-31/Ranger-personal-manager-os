@@ -25,6 +25,9 @@
   --accent-soft: #e8f3ee;
   --accent-track: #e6ebe8;
 
+  --overdue: #c2410c;
+  --overdue-soft: #fdeee6;
+
   --streak: #e8762b;
   --streak-soft: #fdf1e7;
 
@@ -45,6 +48,8 @@
   --color-accent-strong: var(--accent-strong);
   --color-accent-soft: var(--accent-soft);
   --color-accent-track: var(--accent-track);
+  --color-overdue: var(--overdue);
+  --color-overdue-soft: var(--overdue-soft);
   --color-streak: var(--streak);
   --color-streak-soft: var(--streak-soft);
 

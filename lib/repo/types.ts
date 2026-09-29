@@ -1,4 +1,4 @@
-import type { DailyFocus, Goal, Kpi, NewRoutineInput, Routine, RoutineLog } from "@/lib/types";
+import type { DailyFocus, Goal, Kpi, NewRoutineInput, Routine, RoutineLog, Task, TaskInput } from "@/lib/types";
 import type { LogMap } from "@/lib/calc/routine";
 
 /**
@@ -23,6 +23,12 @@ export interface Repository {
 
   getFocus(dateKey: string): Promise<DailyFocus[]>;
 
-  /** Phase 1 専用：デモデータを初期状態に戻す */
+  /** Tasks（Routineとは別保存・別集計） */
+  listTasks(): Promise<Task[]>;
+  createTask(input: TaskInput): Promise<Task>;
+  updateTask(id: string, patch: Partial<TaskInput>): Promise<Task>;
+  deleteTask(id: string): Promise<void>;
+
+  /** Phase 1 専用：Routine側のデモデータを初期状態に戻す（Tasksは対象外） */
   resetDemo?(): Promise<void>;
 }

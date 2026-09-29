@@ -115,3 +115,27 @@ export type NewRoutineInput = Pick<
   | "goal_id"
   | "kpi_id"
 >;
+
+/**
+ * Task（単発業務）
+ * Routine とは別物。Routine達成率・必須Routine・Daily Streak には算入しない。
+ * Phase 2 で tasks テーブルとして追加予定。
+ */
+export type TaskStatus = "todo" | "doing" | "done";
+
+export type Task = {
+  id: string;
+  user_id: string;
+  title: string;
+  /** YYYY-MM-DD。未設定は null */
+  due_date: string | null;
+  status: TaskStatus;
+  memo: string | null;
+  category: Category;
+  /** 完了にした日時（完了以外は null） */
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TaskInput = Pick<Task, "title" | "due_date" | "status" | "memo" | "category">;

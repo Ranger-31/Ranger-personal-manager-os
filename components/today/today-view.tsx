@@ -17,6 +17,7 @@ import { DailyProgress, useRisingEdge } from "./daily-progress";
 import { RoutineGroup } from "./routine-group";
 import { ScopeFilter } from "./scope-filter";
 import { TodayFocus } from "./today-focus";
+import { TodayTasks } from "./today-tasks";
 import { TodayHeader } from "./today-header";
 import { TodaySkeleton } from "./today-skeleton";
 
@@ -113,6 +114,7 @@ export function TodayView() {
         logs={logs}
         onJump={jumpTo}
       />
+      <TodayTasks today={today} />
       <ScopeFilter value={scope} onChange={setScope} />
 
       <div>
