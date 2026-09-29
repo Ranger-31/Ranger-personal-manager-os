@@ -14,7 +14,7 @@ export function DailyProgress({ summary, streak }: { summary: DaySummary; streak
   const celebrate = useRisingEdge(streak.todayAchieved);
 
   return (
-    <section className="mx-5 mt-5 rounded-card border border-border px-5 py-5">
+    <section className="mx-5 mt-4 rounded-card border border-border px-5 py-5">
       <div className="flex items-center gap-5">
         <ProgressRing value={summary.rate} size={124} stroke={11}>
           <span className="tabular text-[34px] leading-none font-bold tracking-tight">

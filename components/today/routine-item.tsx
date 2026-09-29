@@ -42,7 +42,7 @@ function Title({ routine, done }: { routine: Routine; done: boolean }) {
       <span
         className={cn(
           "truncate text-[16px] font-medium transition-colors",
-          done ? "text-muted" : "text-foreground",
+          done ? "text-done" : "text-foreground",
         )}
       >
         {routine.title}

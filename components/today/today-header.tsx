@@ -20,10 +20,10 @@ const formatDate = (d: Date) => `${d.getMonth() + 1}月${d.getDate()}日 ${WEEKD
 export function TodayHeader({ dateKey }: { dateKey: string }) {
   const hour = new Date().getHours();
   return (
-    <header className="flex items-start justify-between px-5 pt-[calc(env(safe-area-inset-top)+18px)]">
+    <header className="flex items-start justify-between px-5 pt-[calc(env(safe-area-inset-top)+14px)]">
       <div>
-        <p className="text-[13px] font-medium text-muted">{formatDate(fromDateKey(dateKey))}</p>
-        <h1 className="mt-0.5 text-[28px] leading-tight font-bold tracking-tight">{greeting(hour)}</h1>
+        <p className="text-[12.5px] font-medium text-muted">{formatDate(fromDateKey(dateKey))}</p>
+        <h1 className="mt-0.5 text-[24px] leading-tight font-bold tracking-tight">{greeting(hour)}</h1>
       </div>
       <DemoMenu />
     </header>
@@ -39,7 +39,7 @@ function DemoMenu() {
       <SheetTrigger asChild>
         <button
           aria-label="メニュー"
-          className="mt-1 flex size-10 items-center justify-center rounded-full text-muted active:bg-surface-muted"
+          className="flex size-10 items-center justify-center rounded-full text-muted active:bg-surface-muted"
         >
           <MoreHorizontal className="size-5" />
         </button>
