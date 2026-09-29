@@ -85,13 +85,19 @@ export function calcStreak(
   const todayAchieved = today.criticalAchieved === true;
 
   let days = todayAchieved ? 1 : 0;
+  // 記録開始日（最も古いRoutineの作成日）より前は遡らない
+  const startKey = routines.reduce<string | null>((min, r) => {
+    const k = toDateKey(new Date(r.created_at));
+    return min === null || k < min ? k : min;
+  }, null);
+  if (startKey === null) return { days, todayAchieved };
+
   let cursor = addDays(todayKey, -1);
-  for (let i = 0; i < maxLookback; i++) {
+  for (let i = 0; i < maxLookback && cursor >= startKey; i++) {
     const s = summarizeDay(routines, logsByDate[cursor] ?? {}, cursor);
     if (s.criticalAchieved === false) break;
+    // 必須0件の日（土日など）は途切れさせず、カウントもしない
     if (s.criticalAchieved === true) days += 1;
-    // 予定Routineが0件＝記録開始前とみなして終了
-    if (s.total === 0) break;
     cursor = addDays(cursor, -1);
   }
   return { days, todayAchieved };

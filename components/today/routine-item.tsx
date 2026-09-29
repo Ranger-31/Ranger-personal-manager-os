@@ -36,7 +36,7 @@ function CheckCircle({ done, animate }: { done: boolean; animate: boolean }) {
   );
 }
 
-function Title({ routine, done }: { routine: Routine; done: boolean }) {
+function Title({ routine, done, tag = true }: { routine: Routine; done: boolean; tag?: boolean }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5">
       <span
@@ -47,7 +47,7 @@ function Title({ routine, done }: { routine: Routine; done: boolean }) {
       >
         {routine.title}
       </span>
-      {routine.is_critical && <CriticalTag />}
+      {tag && routine.is_critical && <CriticalTag />}
     </span>
   );
 }
@@ -117,9 +117,11 @@ function NumberItem({ routine, log, highlighted, onToggle, onSetNumber }: ItemPr
       </button>
 
       <div className="min-w-0 flex-1">
-        <Title routine={routine} done={done} />
+        {/* 数値型はステッパーで横幅を使うため、必須タグは2行目に置いて名前を切らさない */}
+        <Title routine={routine} done={done} tag={false} />
         <div className="mt-1.5 flex items-center gap-2">
-          <ProgressBar value={progressOf(routine, log)} className="max-w-[92px]" />
+          {routine.is_critical && <CriticalTag />}
+          <ProgressBar value={progressOf(routine, log)} className="max-w-[72px]" />
           <span className="tabular shrink-0 text-[11px] text-muted">
             目標 {target}
             {routine.unit}

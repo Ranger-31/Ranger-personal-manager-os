@@ -30,12 +30,19 @@ export function TodayHeader({ dateKey }: { dateKey: string }) {
   );
 }
 
-/** Phase 1 専用：デモデータのリセット */
+/** Phase 1 専用：記録のリセット（実機検証中の誤操作を防ぐため2段階確認） */
 function DemoMenu() {
   const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const reset = useResetDemo();
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setConfirming(false);
+      }}
+    >
       <SheetTrigger asChild>
         <button
           aria-label="メニュー"
@@ -46,19 +53,43 @@ function DemoMenu() {
       </SheetTrigger>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>プロトタイプ設定</SheetTitle>
-          <SheetDescription>Phase 1 はモックデータで動作しています（この端末にのみ保存）。</SheetDescription>
+          <SheetTitle>設定</SheetTitle>
+          <SheetDescription>
+            Phase 1 は記録をこの端末（このアプリ）にのみ保存しています。
+          </SheetDescription>
         </SheetHeader>
         <div className="px-6 pt-3 pb-6">
-          <Button
-            variant="secondary"
-            className="w-full"
-            disabled={reset.isPending}
-            onClick={() => reset.mutate(undefined, { onSuccess: () => setOpen(false) })}
-          >
-            <RotateCcw className="size-4" />
-            デモデータを初期状態に戻す
-          </Button>
+          {confirming ? (
+            <div className="space-y-3">
+              <p className="text-[13.5px] leading-relaxed text-foreground">
+                これまでの記録・Streak・追加したRoutineがすべて消え、初期状態に戻ります。元に戻せません。
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="secondary" onClick={() => setConfirming(false)}>
+                  やめる
+                </Button>
+                <Button
+                  className="bg-[#c2410c] hover:bg-[#9a3412]"
+                  disabled={reset.isPending}
+                  onClick={() =>
+                    reset.mutate(undefined, {
+                      onSuccess: () => {
+                        setConfirming(false);
+                        setOpen(false);
+                      },
+                    })
+                  }
+                >
+                  消去する
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button variant="secondary" className="w-full" onClick={() => setConfirming(true)}>
+              <RotateCcw className="size-4" />
+              記録をリセットして初期状態に戻す
+            </Button>
+          )}
         </div>
       </SheetContent>
     </Sheet>

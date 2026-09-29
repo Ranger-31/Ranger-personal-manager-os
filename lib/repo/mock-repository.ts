@@ -19,7 +19,7 @@ import { addDays, toDateKey } from "@/lib/utils";
  * 実機で数日触っても状態が残るように保存する。
  */
 
-const STORAGE_KEY = "pmos:mock:v1";
+const STORAGE_KEY = "pmos:local:v2";
 
 type Store = {
   seededOn: string;

@@ -4,7 +4,8 @@ Goal → KPI → Action → Routine → Log をつなぐ個人用マネジメン
 
 ## 現在の状態：Phase 1（UIプロトタイプ）
 
-- バックエンド・AI API は未接続。**モックデータ（端末の localStorage）で動作**
+- バックエンド・AI API は未接続。**記録は端末の localStorage に保存**
+- 初期データは実機検証用の実Routine（Work 5件・平日）。過去ログなし、Streak は0日から開始（`lib/mock/data.ts`）
 - 実装済み：**Today 画面**、Routine追加フォーム、PWA（manifest / App icon / iOS Splash / Standalone）
 - Goals / Analytics / AI は Today 承認後に実装（現在はプレースホルダー）
 
@@ -41,7 +42,7 @@ npm install
 npm run dev   # http://localhost:3000 → /today
 ```
 
-右上「…」→「デモデータを初期状態に戻す」でモックデータをリセットできます。
+右上「…」→「記録をリセットして初期状態に戻す」で初期状態に戻せます（2段階確認・元に戻せません）。
 
 ## Vercel で実機確認
 
