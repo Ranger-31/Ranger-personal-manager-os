@@ -5,7 +5,7 @@ Goal → KPI → Action → Routine → Log をつなぐ個人用マネジメン
 ## 現在の状態：Phase 1（UIプロトタイプ）
 
 - バックエンド・AI API は未接続。**記録は端末の localStorage に保存**
-- 初期データは実機検証用の実Routine（Work 5件・平日）。過去ログなし、Streak は0日から開始（`lib/mock/data.ts`）
+- 新規利用時は Routine を自動登録しない（空から開始し、＋から登録）。端末に保存済みの Routine・記録・Streak はそのまま保持
 - 実装済み：**Today 画面**、Routine追加フォーム、PWA（manifest / App icon / iOS Splash / Standalone）
 - Goals / Analytics / AI は Today 承認後に実装（現在はプレースホルダー）
 - **Tasks（単発タスク）**：タイトル・期限・状態（未着手／進行中／完了）・メモ・区分。期限切れ→今日→今後→期限なし→完了の順に表示。Todayには期限切れ・今日期限の未完了のみ表示。Routine達成率・Streakには算入しない
