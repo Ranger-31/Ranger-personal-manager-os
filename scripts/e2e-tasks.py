@@ -81,7 +81,7 @@ async def main():
         ctx = await launch(p)
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()
         await page.goto(BASE + "/today")
-        await page.wait_for_selector("text=TODAY FOCUS")
+        await page.wait_for_selector("text=今日の達成率")
         await page.locator("#routine-r-gbp").click()
         await page.locator("#routine-r-corp-sales").get_by_role("button", name="増やす").click()
         await page.locator("#routine-r-corp-call").get_by_role("button", name="増やす").click()
@@ -102,7 +102,7 @@ async def main():
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
         await page.goto(BASE + "/today")
-        await page.wait_for_selector("text=TODAY FOCUS")
+        await page.wait_for_selector("text=今日の達成率")
         await page.wait_for_timeout(600)
         after = await storage(page)
         new_stat = await routine_stat(page)
@@ -223,7 +223,7 @@ async def main():
 
         # ---------- E) Routine側リセットでTasksが消えない ----------
         await page.goto(BASE + "/today")
-        await page.wait_for_selector("text=TODAY FOCUS")
+        await page.wait_for_selector("text=今日の達成率")
         tasks_before_reset = (await storage(page))["tasks"]
         await page.get_by_role("button", name="メニュー").click()
         await page.get_by_role("button", name="記録をリセットして初期状態に戻す").click()

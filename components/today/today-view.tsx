@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { RoutineFormSheet } from "@/components/forms/routine-form-sheet";
 import {
-  useFocus,
   useHistory,
   useLogs,
   useRoutines,
@@ -16,7 +15,6 @@ import { buildSections, type Scope } from "@/lib/today/grouping";
 import { DailyProgress, useRisingEdge } from "./daily-progress";
 import { RoutineGroup } from "./routine-group";
 import { ScopeFilter } from "./scope-filter";
-import { TodayFocus } from "./today-focus";
 import { TodayTasks } from "./today-tasks";
 import { TodayHeader } from "./today-header";
 import { TodaySkeleton } from "./today-skeleton";
@@ -26,7 +24,6 @@ export function TodayView() {
   const routinesQ = useRoutines();
   const logsQ = useLogs(today);
   const historyQ = useHistory(today);
-  const focusQ = useFocus(today);
   const upsert = useUpsertLog(today);
 
   const [scope, setScope] = useState<Scope>("all");
@@ -108,12 +105,7 @@ export function TodayView() {
     <div className="pb-6">
       <TodayHeader dateKey={today} />
       <DailyProgress summary={summary} streak={streak} />
-      <TodayFocus
-        focus={focusQ.data ?? []}
-        routines={todays}
-        logs={logs}
-        onJump={jumpTo}
-      />
+      {/* TODAY FOCUS（固定サンプル表示）は外した。保存済みのFocusデータは削除せずそのまま残す */}
       <TodayTasks today={today} />
       <ScopeFilter value={scope} onChange={setScope} />
 
