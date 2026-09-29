@@ -183,7 +183,15 @@ export function SettingsMenu() {
           <MoreHorizontal className="size-5" />
         </button>
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent
+        hideClose={mode.kind === "failed"}
+        onInteractOutside={(e) => {
+          if (mode.kind === "failed") e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (mode.kind === "failed") e.preventDefault();
+        }}
+      >
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>
@@ -235,8 +243,10 @@ export function SettingsMenu() {
               }}
               onRetry={() => retryRollback(mode.snapshot)}
               onClose={() => {
+                // 書き出し後だけ表示されるボタン。控えはファイルに残っているので閉じてよい
+                setOpen(false);
                 setMode({ kind: "main" });
-                setMessage({ tone: "error", text: "復元は完了していません。データを確認してください。" });
+                setMessage(null);
               }}
             />
           )}
@@ -435,7 +445,7 @@ function FailedPanel({
           </li>
         </ul>
         <p className="mt-2">
-          復元前のデータはアプリの画面を閉じるまで一時的に保持しています。まず書き出して保管してください。
+          復元前のデータは、この画面で一時的に保持しています。アプリを終了すると失われるため、まず書き出して保管してください。
         </p>
       </div>
       {rescued ? (
@@ -454,9 +464,15 @@ function FailedPanel({
         元に戻す処理をもう一度試す
       </Button>
       {message && <Message msg={message} />}
-      <button type="button" onClick={onClose} className="w-full py-2 text-[13px] font-semibold text-muted">
-        このまま閉じる（復元は完了していません）
-      </button>
+      {rescued ? (
+        <button type="button" onClick={onClose} className="w-full py-2 text-[13px] font-semibold text-muted">
+          閉じる（復元は完了していません）
+        </button>
+      ) : (
+        <p data-close-locked className="text-center text-[12.5px] leading-relaxed text-muted">
+          復元前のデータを書き出すまで、この画面は閉じられません。
+        </p>
+      )}
     </div>
   );
 }

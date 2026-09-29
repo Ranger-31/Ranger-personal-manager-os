@@ -21,8 +21,9 @@ function SheetClose(props: React.ComponentProps<typeof SheetPrimitive.Close>) {
 function SheetContent({
   className,
   children,
+  hideClose = false,
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Content>) {
+}: React.ComponentProps<typeof SheetPrimitive.Content> & { hideClose?: boolean }) {
   return (
     <SheetPrimitive.Portal>
       <SheetPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30 data-[state=open]:animate-[fade-in_200ms_ease-out] data-[state=closed]:animate-[fade-out_150ms_ease-in]" />
@@ -34,14 +35,19 @@ function SheetContent({
         )}
         {...props}
       >
-        <div className="mx-auto mt-2.5 h-1 w-9 shrink-0 rounded-full bg-border" />
+        {/* 閉じられない状態では、閉じられるように見える取っ手と×を出さない */}
+        <div
+          className={cn("mx-auto mt-2.5 h-1 w-9 shrink-0 rounded-full bg-border", hideClose && "invisible")}
+        />
         {children}
-        <SheetPrimitive.Close
-          className="absolute top-4 right-4 flex size-9 items-center justify-center rounded-full bg-surface-muted text-muted"
-          aria-label="閉じる"
-        >
-          <X className="size-4.5" />
-        </SheetPrimitive.Close>
+        {!hideClose && (
+          <SheetPrimitive.Close
+            className="absolute top-4 right-4 flex size-9 items-center justify-center rounded-full bg-surface-muted text-muted"
+            aria-label="閉じる"
+          >
+            <X className="size-4.5" />
+          </SheetPrimitive.Close>
+        )}
       </SheetPrimitive.Content>
     </SheetPrimitive.Portal>
   );
