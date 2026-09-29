@@ -1,13 +1,35 @@
 import { strict as assert } from "node:assert";
-import { applyBackup, BackupError, buildBackup, parseBackup, ROUTINE_KEY, TASKS_KEY, type KV } from "@/lib/backup";
+import {
+  applyBackup,
+  BackupError,
+  backupFromSnapshot,
+  buildBackup,
+  parseBackup,
+  restoreSnapshot,
+  ROUTINE_KEY,
+  TASKS_KEY,
+  type KV,
+} from "@/lib/backup";
 
 // バックアップの単体テスト：npx tsx scripts/test-backup.ts
-const mem = (init: Record<string, string> = {}): KV & { dump: () => Record<string, string> } => {
+type MemKV = KV & { dump: () => Record<string, string>; fail: Set<string>; failRemove: Set<string>; silent: Set<string> };
+const mem = (init: Record<string, string> = {}): MemKV => {
   const m = new Map(Object.entries(init));
+  const fail = new Set<string>(); // setItem で例外
+  const failRemove = new Set<string>(); // removeItem で例外
+  const silent = new Set<string>(); // 例外なしで保存されない
   return {
+    fail, failRemove, silent,
     getItem: (k) => m.get(k) ?? null,
-    setItem: (k, v) => void m.set(k, String(v)),
-    removeItem: (k) => void m.delete(k),
+    setItem: (k, v) => {
+      if (fail.has(k)) throw new Error("QuotaExceededError");
+      if (silent.has(k)) return;
+      m.set(k, String(v));
+    },
+    removeItem: (k) => {
+      if (failRemove.has(k)) throw new Error("remove failed");
+      m.delete(k);
+    },
     dump: () => Object.fromEntries(m),
   };
 };
@@ -21,63 +43,121 @@ const routineStore = {
   ],
   logs: { "2026-09-29|r1": { id: "l1", routine_id: "r1", user_id: "u", log_date: "2026-09-29", is_completed: true,
     numeric_value: 1, note: null, created_at: "x", updated_at: "x" } },
-  focus: [],
+  focus: [{ id: "f1", user_id: "u", focus_date: "2026-09-29", title: "法人営業", action_id: null, routine_id: "r1", sort_order: 1 }],
 };
 const taskStore = { version: 1, tasks: [{ id: "t1", user_id: "u", title: "報告書作成", due_date: "2026-09-30",
   status: "todo", memo: null, category: "work", completed_at: null, created_at: "x", updated_at: "x" }] };
+const R = JSON.stringify(routineStore);
+const T = JSON.stringify(taskStore);
+const ORIG = { [ROUTINE_KEY]: "ORIGINAL-R", [TASKS_KEY]: "ORIGINAL-T" };
 
-const src = mem({ [ROUTINE_KEY]: JSON.stringify(routineStore), [TASKS_KEY]: JSON.stringify(taskStore) });
-const file = JSON.stringify(buildBackup(src));
-
-// 1) 検証・概要
+const file = JSON.stringify(buildBackup(mem({ [ROUTINE_KEY]: R, [TASKS_KEY]: T })));
 const { backup, summary } = parseBackup(file);
-assert.deepEqual([summary.routines, summary.logDays, summary.tasks, summary.openTasks], [1, 1, 1, 1]);
 
-// 2) 空の端末へ復元
-const empty = mem();
-applyBackup(empty, backup);
-assert.equal(empty.getItem(ROUTINE_KEY), src.getItem(ROUTINE_KEY));
-assert.equal(empty.getItem(TASKS_KEY), src.getItem(TASKS_KEY));
+// 1) 形式バージョン・保存先情報・Focusを含む全データ
+const f = JSON.parse(file);
+assert.equal(f.formatVersion, 1);
+assert.deepEqual(f.sources, { routine: { key: ROUTINE_KEY, present: true }, tasks: { key: TASKS_KEY, present: true } });
+assert.deepEqual([summary.routines, summary.logDays, summary.focus, summary.tasks], [1, 1, 1, 1]);
 
-// 3) 既存データがある端末へ復元（置き換え）
-const other = mem({ [ROUTINE_KEY]: '{"seededOn":"2026-01-01","routines":[],"logs":{},"focus":[]}', [TASKS_KEY]: '{"version":1,"tasks":[]}' });
-applyBackup(other, backup);
-assert.deepEqual(other.dump(), src.dump());
+// 2) 空の端末 → 復元
+let kv = mem();
+assert.equal(applyBackup(kv, backup).status, "ok");
+assert.deepEqual(kv.dump(), { [ROUTINE_KEY]: R, [TASKS_KEY]: T });
 
-// 4) 途中で失敗 → 両方とも元に戻る（Routineだけ復元・Tasks消失を作らない）
-const orig = { [ROUTINE_KEY]: "ORIGINAL-R", [TASKS_KEY]: "ORIGINAL-T" };
-const failing = mem(orig);
-const baseSet = failing.setItem;
-let calls = 0;
-failing.setItem = (k, v) => {
-  calls += 1;
-  if (k === TASKS_KEY && calls === 2) throw new Error("QuotaExceeded");
+// 3) 保存先が未作成（空データ）のバックアップ：両方 null → 復元先の両キーは削除される
+const emptyFile = buildBackup(mem());
+assert.deepEqual(emptyFile.sources, { routine: { key: ROUTINE_KEY, present: false }, tasks: { key: TASKS_KEY, present: false } });
+const emptyParsed = parseBackup(JSON.stringify(emptyFile));
+assert.equal(emptyParsed.summary.hasData, false);
+kv = mem({ [ROUTINE_KEY]: R, [TASKS_KEY]: T });
+assert.equal(applyBackup(kv, emptyParsed.backup).status, "ok");
+assert.deepEqual(kv.dump(), {});
+// 片方だけ未作成（Tasksなし）
+const onlyR = parseBackup(JSON.stringify(buildBackup(mem({ [ROUTINE_KEY]: R }))));
+kv = mem({ [TASKS_KEY]: T });
+assert.equal(applyBackup(kv, onlyR.backup).status, "ok");
+assert.deepEqual(kv.dump(), { [ROUTINE_KEY]: R });
+
+// 4) 2つ目（Tasks）の書き込み失敗 → 元に戻したことを確認 → rolledBack
+kv = mem(ORIG);
+kv.fail.add(TASKS_KEY);
+let res = applyBackup(kv, backup);
+assert.equal(res.status, "rolledBack");
+assert.deepEqual(kv.dump(), ORIG);
+
+// 5) 1つ目（Routine）の書き込み失敗 → rolledBack（何も変わっていない）
+kv = mem(ORIG);
+kv.fail.add(ROUTINE_KEY);
+res = applyBackup(kv, backup);
+assert.equal(res.status, "rolledBack");
+assert.deepEqual(kv.dump(), ORIG);
+
+// 6) 黙って保存されない端末 → 書き込み後の確認で検出 → rolledBack
+kv = mem(ORIG);
+kv.silent.add(TASKS_KEY);
+res = applyBackup(kv, backup);
+assert.equal(res.status, "rolledBack");
+assert.deepEqual(kv.dump(), ORIG);
+
+// 7) 書き込み失敗 ＋ 元に戻す処理も失敗 → failed（成功扱いにしない）・状態と控えを返す
+kv = mem(ORIG);
+let n = 0;
+const baseSet = kv.setItem;
+kv.setItem = (k, v) => {
+  n += 1;
+  if (k === TASKS_KEY) throw new Error("QuotaExceededError"); // Tasks は書けない
+  if (n > 1 && k === ROUTINE_KEY) throw new Error("QuotaExceededError"); // Routine の巻き戻しも失敗
   baseSet(k, v);
 };
-assert.throws(() => applyBackup(failing, backup), BackupError);
-assert.deepEqual(failing.dump(), orig, "失敗時は両キーとも元のまま");
+res = applyBackup(kv, backup);
+assert.equal(res.status, "failed");
+if (res.status !== "failed") throw new Error();
+assert.deepEqual(res.state, { routine: "backup", tasks: "original" }, "Routineだけ置き換わった状態を正しく報告");
+assert.deepEqual(res.snapshot, { routine: "ORIGINAL-R", tasks: "ORIGINAL-T" }, "復元前の控えを保持");
+const failedSnap = res.snapshot;
+// 控えは書き出し可能なファイルになる（壊れた生データは null ではなくエラーとして扱う）
+assert.throws(() => backupFromSnapshot(failedSnap), BackupError);
+const realSnap = { routine: R, tasks: T };
+const rescue = parseBackup(backupFromSnapshot(realSnap));
+assert.equal(rescue.summary.routines, 1);
+// 容量が戻れば、控えから元に戻せる
+kv.setItem = baseSet;
+assert.equal(restoreSnapshot(kv, failedSnap), true);
+assert.deepEqual(kv.dump(), ORIG);
 
-// 5) 不正ファイル
-const bad = [
-  "not json",
-  "{}",
-  JSON.stringify({ app: "shop-routine", version: 1, items: [], records: {} }),
-  JSON.stringify({ ...JSON.parse(file), format: 99 }),
-  JSON.stringify({ ...JSON.parse(file), data: { routineStore: { ...routineStore, routines: [{ id: "x" }] }, taskStore } }),
-  JSON.stringify({ ...JSON.parse(file), data: { routineStore, taskStore: { version: 1, tasks: [{ id: "t", title: "", status: "todo" }] } } }),
-  JSON.stringify({ ...JSON.parse(file), data: { routineStore } }),
+// 8) 未作成だった保存先を戻せない（removeItem失敗）→ failed
+kv = mem({ [ROUTINE_KEY]: "ORIGINAL-R" }); // Tasks 保存先は未作成
+kv.fail.add(ROUTINE_KEY);
+kv.failRemove.add(TASKS_KEY);
+res = applyBackup(kv, backup);
+assert.equal(res.status, "rolledBack", "Routine書き込み失敗時点でTasksは未変更なので戻す必要なし");
+
+// 9) 不正ファイル（両側とも検証）
+const good = JSON.parse(file);
+const bad: [string, unknown][] = [
+  ["not json", "not json"],
+  ["空オブジェクト", {}],
+  ["別アプリ", { app: "shop-routine", version: 1, items: [], records: {} }],
+  ["バージョンなし", { ...good, formatVersion: undefined }],
+  ["新しいバージョン", { ...good, formatVersion: 2 }],
+  ["保存先情報が違う", { ...good, sources: { ...good.sources, tasks: { key: "other", present: true } } }],
+  ["中身と保存先情報の不一致", { ...good, data: { ...good.data, taskStore: null } }],
+  ["Routine欠損", { ...good, data: { ...good.data, routineStore: { ...routineStore, routines: [{ id: "x" }] } } }],
+  ["記録のキー不整合", { ...good, data: { ...good.data, routineStore: { ...routineStore, logs: { "2026-01-01|zz": routineStore.logs["2026-09-29|r1"] } } } }],
+  ["Focus不正", { ...good, data: { ...good.data, routineStore: { ...routineStore, focus: [{ id: 1 }] } } }],
+  ["Taskタイトル空", { ...good, data: { ...good.data, taskStore: { version: 1, tasks: [{ ...taskStore.tasks[0], title: "" }] } } }],
+  ["Tasks欠落", { ...good, data: { routineStore } }],
 ];
-for (const b of bad) assert.throws(() => parseBackup(b), BackupError, b.slice(0, 40));
+for (const [label, b] of bad) {
+  assert.throws(() => parseBackup(typeof b === "string" ? b : JSON.stringify(b)), BackupError, label);
+}
+assert.throws(() => parseBackup(JSON.stringify({ ...good, formatVersion: 2 })), /新しいバージョン/);
 
-// 6) 書き出したファイルを再読み込み → 同じ内容
-const again = parseBackup(JSON.stringify(parseBackup(file).backup));
-assert.deepEqual(again.backup.data, backup.data);
+// 10) 書き出し → 再読み込みで同一
+assert.deepEqual(parseBackup(JSON.stringify(backup)).backup.data, backup.data);
 
-// 7) Tasks未作成の端末のバックアップ（taskStore=null）も復元でき、復元先のTasksキーは空になる
-const onlyR = mem({ [ROUTINE_KEY]: JSON.stringify(routineStore) });
-const b2 = parseBackup(JSON.stringify(buildBackup(onlyR))).backup;
-const dst = mem({ [TASKS_KEY]: JSON.stringify(taskStore) });
-applyBackup(dst, b2);
-assert.equal(dst.getItem(TASKS_KEY), null);
+// 11) 端末の保存内容が壊れている場合、空として書き出さずエラー
+assert.throws(() => buildBackup(mem({ [ROUTINE_KEY]: "{broken" })), BackupError);
 
 console.log("all backup tests passed");
