@@ -11,9 +11,14 @@ import type { Task, TaskInput } from "@/lib/types";
  */
 export const TASKS_STORAGE_KEY = "pmos:tasks:v1";
 
-type TaskStore = { version: 1; tasks: Task[] };
+export type TaskStore = { version: 1; tasks: Task[] };
 
 let memory: TaskStore | null = null;
+
+/** バックアップ復元後に、端末の保存内容を読み直させる */
+export function resetTaskCache() {
+  memory = null;
+}
 
 function load(): TaskStore {
   if (memory) return memory;

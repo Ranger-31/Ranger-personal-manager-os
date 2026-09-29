@@ -10,6 +10,9 @@ Goal → KPI → Action → Routine → Log をつなぐ個人用マネジメン
 - Goals / Analytics / AI は Today 承認後に実装（現在はプレースホルダー）
 - **Tasks（単発タスク）**：タイトル・期限・状態（未着手／進行中／完了）・メモ・区分。期限切れ→今日→今後→期限なし→完了の順に表示。Todayには期限切れ・今日期限の未完了のみ表示。Routine達成率・Streakには算入しない
   - 保存キーは `pmos:tasks:v1`（Routineの `pmos:local:v2` とは別。既存データに触れない）。Routine側のリセットでは消えない
+- **バックアップ**：Today右上「…」→「書き出す／読み込む」。Routine・記録・Streak・Tasks の全データを1ファイル（`pmos-backup-YYYY-MM-DD.json`）に書き出し、機種変更先で読み込める
+  - 読み込みは「検証 → 概要（作成日時・Routine数・記録日数・Task数）表示 → 置き換えの確定」まで端末のデータを変更しない
+  - 置き換えは2つの保存キーをまとめて書き込み、途中で失敗したら両方を元に戻す（片方だけ復元される状態を作らない）。不正なファイルでは何も変更しない
 
 ## 仕様変更の反映（v0.1 仕様書からの差分）
 
@@ -45,6 +48,8 @@ npm run dev   # http://localhost:3000 → /today
 ```
 
 右上「…」→「記録をリセットして初期状態に戻す」で初期状態に戻せます（2段階確認・元に戻せません）。
+
+検証：`npx tsx scripts/test-backup.ts`（バックアップ単体）、`scripts/e2e-*.py`（Playwright）
 
 ## Vercel で実機確認
 

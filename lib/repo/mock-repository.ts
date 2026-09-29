@@ -20,9 +20,9 @@ import { taskStore } from "@/lib/repo/task-store";
  * 実機で数日触っても状態が残るように保存する。
  */
 
-const STORAGE_KEY = "pmos:local:v2";
+export const STORAGE_KEY = "pmos:local:v2";
 
-type Store = {
+export type Store = {
   seededOn: string;
   routines: Routine[];
   logs: Record<string, RoutineLog>; // key: `${date}|${routineId}`
@@ -94,6 +94,11 @@ function seed(): Store {
 }
 
 let memory: Store | null = null;
+
+/** バックアップ復元後に、端末の保存内容を読み直させる */
+export function resetRoutineCache() {
+  memory = null;
+}
 
 function load(): Store {
   if (memory) return memory;

@@ -85,12 +85,21 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
+/**
+ * 達成演出を一時的に止める（バックアップ復元などデータの入れ替え直後は、
+ * その場で達成したわけではないので演出しない）
+ */
+let suppressCelebrationUntil = 0;
+export function suppressCelebration(ms = 3000) {
+  suppressCelebrationUntil = Date.now() + ms;
+}
+
 /** false → true に変わった瞬間だけ true を返す（達成時のみアニメーション。未ロード(undefined)からの変化は無視） */
 function useRisingEdge(flag: boolean | undefined, durationMs = 1000) {
   const prev = useRef(flag);
   const [fire, setFire] = useState(false);
   useEffect(() => {
-    if (prev.current === false && flag === true) {
+    if (prev.current === false && flag === true && Date.now() >= suppressCelebrationUntil) {
       setFire(true);
       const t = setTimeout(() => setFire(false), durationMs);
       prev.current = flag;
